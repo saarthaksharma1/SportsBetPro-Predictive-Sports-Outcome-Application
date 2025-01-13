@@ -1,51 +1,31 @@
 from flask import Flask, jsonify
-from flask_cors import CORS
-
-import psycopg2
+import requests
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
+# Load environment variables from the .env file
 load_dotenv()
 
-from flask_cors import CORS
-
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
 
+# Retrieve the API key from the .env file
+SOCCER_API_KEY = os.getenv('SOCCER_API_KEY')
 
-# Connect to the database
-def get_db_connection():
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-    return conn
+# Base URL for API-Football
+BASE_URL = 'https://v3.football.api-sports.io'
 
-@app.route('/')
-def index():
-    return jsonify({"message": "Welcome to SportsBetPro!"})
-
-@app.route('/api/games', methods=['GET'])
-def get_games():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM games;")
-    games = cursor.fetchall()
-    conn.close()
-
-    # Format data for frontend
-    games_list = [
-        {
-            "game_id": row[0],
-            "sport_name": row[1],
-            "team_a": row[2],
-            "team_b": row[3],
-            "game_date": row[4],
-            "odds_team_a": float(row[5]),
-            "odds_team_b": float(row[6]),
-            "predicted_winner": row[7],
-        }
-        for row in games
-    ]
-    return jsonify(games_list)
+# Example endpoint to fetch soccer leagues
+@app.route('/leagues', methods=['GET'])
+def get_leagues():
+    headers = {
+        'x-rapidapi-key': SOCCER_API_KEY,
+        'x-rapidapi-host': 'v3.football.api-sports.io'
+    }
+    response = requests.get(f'{BASE_URL}/leagues', headers=headers)
+    if response.status_code == 200:
+        return jsonify(response.json())
+    else:
+        return jsonify({'error': 'Failed to fetch data', 'status_code': response.status_code})
 
 if __name__ == '__main__':
     app.run(debug=True)
